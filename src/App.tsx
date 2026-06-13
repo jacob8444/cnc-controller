@@ -1180,26 +1180,17 @@ function DesktopLayout({
 }) {
   const [rightTab, setRightTab] = useState<RightTab>('console')
 
-  // ── Backend connection ───────────────────────────────────────────────────────
-  const [backendHost, setBackendHost] = useState(window.location.host || 'raspberrypi.local:8080')
-  const [backendUrl, setBackendUrl] = useState<string | null>(null)
-  const [connectOpen, setConnectOpen] = useState(false)
+  // ── Backend connection — auto-connect to same host ───────────────────────────
+  const backendUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host || 'raspberrypi.local:8080'}`
 
   const { wsOpen, status, metrics: piMetrics, wsConsole, send } = useBackend(backendUrl)
 
   const connected = wsOpen
   const firmware  = status.firmware
   const detecting = wsOpen && !status.firmware
+  const serialConnected = status.connected
 
-  const handleConnect = () => {
-    if (connected) {
-      setBackendUrl(null)
-      setConnectOpen(false)
-    } else {
-      setBackendUrl(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${backendHost}`)
-      setConnectOpen(false)
-    }
-  }
+
 
   // ── Jog state (lifted so keyboard jog can access feedrate/jogAmount) ─────────
   const [feedrate, setFeedrate]     = useState(500)
@@ -1318,39 +1309,14 @@ function DesktopLayout({
       <header className="h-11 border-b bg-card flex items-center px-5 gap-4 shrink-0 relative">
         <span className="text-sm font-semibold tracking-tight">CNC Controller</span>
         <div className="w-px h-4 bg-border" />
-        {/* Serial connection */}
-        <div className="relative">
-          <button onClick={() => setConnectOpen(v => !v)}
-            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
-            {connected ? <PlugZap size={13} className="text-green-500" /> : <Plug size={13} className="text-muted-foreground" />}
-            <span className={connected ? 'text-green-600 font-mono' : 'text-muted-foreground'}>{connected ? backendHost : 'Not connected'}</span>
-            <ChevronDown size={11} className={`text-muted-foreground transition-transform ${connectOpen ? 'rotate-180' : ''}`} />
-          </button>
-          {connectOpen && (
-            <div className="absolute top-full left-0 mt-1 w-72 bg-card border rounded-xl shadow-lg p-3 z-50 flex flex-col gap-2">
-              <label className="flex flex-col gap-1">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Backend Host</span>
-                <input type="text" value={backendHost} onChange={e => setBackendHost(e.target.value)}
-                  className="bg-muted rounded-lg px-3 py-2 text-sm font-mono" placeholder="raspberrypi.local:8080" />
-              </label>
-              <p className="text-[10px] text-muted-foreground px-1">
-                WebSocket: <span className="font-mono">ws://{backendHost}</span>
-              </p>
-              <button onClick={handleConnect}
-                className={`w-full rounded-lg py-2 text-sm font-semibold transition-colors ${connected ? 'bg-muted text-red-500' : 'bg-foreground text-background'}`}>
-                {connected ? 'Disconnect' : 'Connect'}
-              </button>
-              {firmware && (
-                <div className={`rounded-lg px-3 py-2 flex items-center gap-2 ${firmware.type === 'grbl' ? 'bg-indigo-50 dark:bg-indigo-950' : 'bg-orange-50 dark:bg-orange-950'}`}>
-                  <span className={`text-xs font-bold font-mono ${firmware.type === 'grbl' ? 'text-indigo-600' : 'text-orange-600'}`}>
-                    {firmware.type === 'grbl' ? 'GRBL' : 'FluidNC'}
-                  </span>
-                  <span className={`text-xs font-mono ${firmware.type === 'grbl' ? 'text-indigo-500' : 'text-orange-500'}`}>{firmware.version}</span>
-                  {firmware.board && <span className="text-[10px] text-muted-foreground ml-auto">{firmware.board}</span>}
-                </div>
-              )}
-            </div>
-          )}
+        {/* Serial connection status */}
+        <div className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-muted">
+          {serialConnected
+            ? <PlugZap size={13} className="text-green-500" />
+            : <Plug size={13} className="text-muted-foreground" />}
+          <span className={serialConnected ? 'text-green-600' : 'text-muted-foreground'}>
+            {serialConnected ? (firmware ? `${firmware.type === 'grbl' ? 'GRBL' : 'FluidNC'} ${firmware.version}` : 'Connected') : (wsOpen ? 'No machine' : 'Offline')}
+          </span>
         </div>
 
         {/* Firmware badge */}
