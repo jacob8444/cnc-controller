@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useBackend } from '@/hooks/useBackend'
-import { Joystick, Camera, FileCode2, Play, Pause, Square, Wrench, Home, RotateCcw, Target, Circle, Folder, Download, Trash2, FolderOpen, ChevronDown, Send, Plus, Pencil, AlertTriangle, X, Plug, PlugZap, Keyboard } from 'lucide-react'
+import { Joystick, Camera, FileCode2, Play, Pause, Square, Wrench, Home, RotateCcw, Target, Circle, Folder, Download, Trash2, FolderOpen, ChevronDown, Send, Plus, Pencil, AlertTriangle, Plug, PlugZap, Keyboard } from 'lucide-react'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { GCodeVisualizer, type GCodeStats } from '@/components/GCodeVisualizer'
@@ -164,8 +164,6 @@ function JogInterface({
   const [localJogAmount, setLocalJogAmount] = useState(1)
   const feedrate  = feedrateProp  ?? localFeedrate
   const jogAmount = jogAmountProp ?? localJogAmount
-  const setFeedrate  = onFeedrateChange  ?? setLocalFeedrate
-  const setJogAmount = onJogAmountChange ?? setLocalJogAmount
 
   const jog = (axis: string, sign: 1 | -1) => onJog?.(axis, sign * jogAmount, feedrate)
 
@@ -174,7 +172,7 @@ function JogInterface({
       <ScrollSelector
         options={FEEDRATES}
         value={feedrate}
-        onChange={onFeedrateChange}
+        onChange={onFeedrateChange ?? setLocalFeedrate}
         format={v => `${v} mm/min`}
       />
 
@@ -210,7 +208,7 @@ function JogInterface({
       <ScrollSelector
         options={JOG_AMOUNTS}
         value={jogAmount}
-        onChange={onJogAmountChange}
+        onChange={onJogAmountChange ?? setLocalJogAmount}
         format={v => `${v} mm`}
       />
     </div>
@@ -242,6 +240,7 @@ function MachineActions({
     { label: 'Stop', icon: Square, className: 'text-red-500', onClick: onStop },
     { label: 'Home', icon: Home, className: '', onClick: () => onHome?.() },
     { label: 'Reset', icon: RotateCcw, className: '', onClick: () => onReset?.() },
+    { label: 'Unlock', icon: AlertTriangle, className: 'text-yellow-500', onClick: () => onUnlock?.() },
   ]
   return (
     <div className="border-t bg-background flex">
@@ -1278,7 +1277,7 @@ function DesktopLayout({
   // ── Timelapse / camera ───────────────────────────────────────────────────────
   const [tlState, setTlState] = useState<TimelapseState>('idle')
   const [tlFps, setTlFps] = useState(1)
-  const [libraryOpen, setLibraryOpen] = useState(false)
+  const [, setLibraryOpen] = useState(false)
   const [timelapses, setTimelapses] = useState<TimelapseEntry[]>(MOCK_TIMELAPSES)
   const [stats, setStats] = useState<GCodeStats | null>(null)
 
@@ -1455,7 +1454,7 @@ function DesktopLayout({
             <div className="border-t px-4 py-2.5">
               <div className="relative group/kbd inline-block">
                 <button
-                  onClick={() => { setKbdActive(v => !v); if (kbdActive) setActiveKeys(new Set()) }}
+                  onClick={() => setKbdActive(v => !v)}
                   className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${kbdActive ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
                 >
                   <Keyboard size={13} />
